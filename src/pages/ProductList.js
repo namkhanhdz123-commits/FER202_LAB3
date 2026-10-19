@@ -11,27 +11,32 @@ export default function ProductList() {
 
   const keyword = searchParams.get("keyword") || "";
   const category = searchParams.get("category") || "All Categories";
+  const sortBy = searchParams.get("sortBy") || "";
   const page = parseInt(searchParams.get("page") || "1", 10);
   const limit = 3; // Số sản phẩm trên mỗi trang
 
   const handleSearchChange = (newKeyword) => {
     const params = new URLSearchParams(searchParams);
-    if (newKeyword) {
-      params.set("keyword", newKeyword);
-    } else {
-      params.delete("keyword");
-    }
+    if (newKeyword) params.set("keyword", newKeyword);
+    else params.delete("keyword");
     params.set("page", "1");
     setSearchParams(params);
   };
 
   const handleCategoryChange = (newCategory) => {
     const params = new URLSearchParams(searchParams);
-    if (newCategory && newCategory !== "All Categories") {
+    if (newCategory && newCategory !== "All Categories")
       params.set("category", newCategory);
-    } else {
-      params.delete("category");
-    }
+    else params.delete("category");
+    params.set("page", "1");
+    setSearchParams(params);
+  };
+
+  const handleSortChange = (e) => {
+    const value = e.target.value;
+    const params = new URLSearchParams(searchParams);
+    if (value) params.set("sortBy", value);
+    else params.delete("sortBy");
     params.set("page", "1");
     setSearchParams(params);
   };
@@ -42,8 +47,9 @@ export default function ProductList() {
     setSearchParams(params);
   };
 
+  // Lọc và Sắp xếp sản phẩm
   const filteredProducts = useMemo(() => {
-    return products.filter((item) => {
+    let result = products.filter((item) => {
       const matchKeyword = item.name
         .toLowerCase()
         .includes(keyword.toLowerCase());
@@ -51,7 +57,19 @@ export default function ProductList() {
         category === "All Categories" || item.category === category;
       return matchKeyword && matchCategory;
     });
-  }, [keyword, category]);
+
+    if (sortBy === "price-asc") {
+      result.sort((a, b) => a.price - b.price);
+    } else if (sortBy === "price-desc") {
+      result.sort((a, b) => b.price - a.price);
+    } else if (sortBy === "name-asc") {
+      result.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortBy === "name-desc") {
+      result.sort((a, b) => b.name.localeCompare(a.name));
+    }
+
+    return result;
+  }, [keyword, category, sortBy]);
 
   const totalPages = Math.ceil(filteredProducts.length / limit) || 1;
   const paginatedProducts = useMemo(() => {
@@ -63,12 +81,34 @@ export default function ProductList() {
     <div style={{ padding: "20px" }}>
       <h2>Product List</h2>
 
-      <div style={{ display: "flex", gap: "15px", flexWrap: "wrap" }}>
+      {/* Các công cụ tìm kiếm, lọc, sắp xếp */}
+      <div
+        style={{
+          display: "flex",
+          gap: "15px",
+          flexWrap: "wrap",
+          marginBottom: "15px",
+        }}
+      >
         <SearchBar keyword={keyword} onSearchChange={handleSearchChange} />
         <CategoryFilter
           category={category}
           onCategoryChange={handleCategoryChange}
         />
+
+        <div>
+          <select
+            value={sortBy}
+            onChange={handleSortChange}
+            style={{ padding: "8px" }}
+          >
+            <option value="">Sắp xếp mặc định</option>
+            <option value="price-asc">Giá: Thấp đến Cao</option>
+            <option value="price-desc">Giá: Cao đến Thấp</option>
+            <option value="name-asc">Tên: A - Z</option>
+            <option value="name-desc">Tên: Z - A</option>
+          </select>
+        </div>
       </div>
 
       <p>
