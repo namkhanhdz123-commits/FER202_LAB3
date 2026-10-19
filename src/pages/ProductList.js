@@ -127,7 +127,7 @@ export default function ProductList() {
               <th>Name</th>
               <th>Category</th>
               <th>Price</th>
-              <th>Action</th>
+              <th>Description</th>
             </tr>
           </thead>
           <tbody>
