@@ -1,96 +1,110 @@
-import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import React, { useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { products } from "../data/products";
+import SearchBar from "../components/SearchBar";
+import CategoryFilter from "../components/CategoryFilter";
+import ProductItem from "../components/ProductItem";
+import Pagination from "../components/Pagination";
 
-function ProductList() {
+export default function ProductList() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [searchTerm, setSearchTerm] = useState(
-    searchParams.get("keyword") || "",
-  );
-  const [selectedCategory, setSelectedCategory] = useState(
-    searchParams.get("category") || "All Categories",
-  );
 
-  const filteredProducts = products.filter((product) => {
-    const nameMatch = product.name
-      .toLowerCase()
-      .includes(
-        searproduct.name.toLowrCase().includes(searchTerm.toLowerCase()),
-      );
-    const categoryMatch =
-      selectedCategory === "All Categories" ||
-      product.category === selectedCategory;
-    return nameMatch && categoryMatch;
-  });
+  const keyword = searchParams.get("keyword") || "";
+  const category = searchParams.get("category") || "All Categories";
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const limit = 3; // Số sản phẩm trên mỗi trang
 
-  useEffect(() => {
-    setSearchParams({ keyword: searchTerm, category: selectedCategory });
-  }, [searchTerm, selectedCategory, setSearchParams]);
+  const handleSearchChange = (newKeyword) => {
+    const params = new URLSearchParams(searchParams);
+    if (newKeyword) {
+      params.set("keyword", newKeyword);
+    } else {
+      params.delete("keyword");
+    }
+    params.set("page", "1");
+    setSearchParams(params);
+  };
 
-  const handleSearch = (event) => {
-    event.preventDefault();
-    navigate(location.pathname, {
-      replace: true,
+  const handleCategoryChange = (newCategory) => {
+    const params = new URLSearchParams(searchParams);
+    if (newCategory && newCategory !== "All Categories") {
+      params.set("category", newCategory);
+    } else {
+      params.delete("category");
+    }
+    params.set("page", "1");
+    setSearchParams(params);
+  };
+
+  const handlePageChange = (newPage) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", newPage);
+    setSearchParams(params);
+  };
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((item) => {
+      const matchKeyword = item.name
+        .toLowerCase()
+        .includes(keyword.toLowerCase());
+      const matchCategory =
+        category === "All Categories" || item.category === category;
+      return matchKeyword && matchCategory;
     });
-  };
+  }, [keyword, category]);
 
-  const handleCategoryChange = (event) => {
-    setSelectedCategory(
-      event.target.valsetSelectedCategory(event.target.value),
-    );
-  };
+  const totalPages = Math.ceil(filteredProducts.length / limit) || 1;
+  const paginatedProducts = useMemo(() => {
+    const start = (page - 1) * limit;
+    return filteredProducts.slice(start, start + limit);
+  }, [filteredProducts, page, limit]);
 
   return (
-    <div>
-      <h1>Product List</h1>
-      <form onSubmit={handleSearch}>
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search by name"
+    <div style={{ padding: "20px" }}>
+      <h2>Product List</h2>
+
+      <div style={{ display: "flex", gap: "15px", flexWrap: "wrap" }}>
+        <SearchBar keyword={keyword} onSearchChange={handleSearchChange} />
+        <CategoryFilter
+          category={category}
+          onCategoryChange={handleCategoryChange}
         />
-        <select
-          value={selectedCategory}
-          onChange={(handlvalue = { selectedCategory })}
+      </div>
+
+      <p>
+        <strong>Total Products:</strong> {filteredProducts.length}
+      </p>
+
+      {paginatedProducts.length > 0 ? (
+        <table
+          border="1"
+          cellPadding="10"
+          style={{ borderCollapse: "collapse", width: "100%" }}
         >
-          <option value="All Categories">All Categories</option>
-          <option value="Điện thoại">Điện thoại</option>
-          <option value="Laptop">Laptop</option>
-          <option value="Máy tính bảng">Máy tính bảng</option>
-        </select>
-        <button type="submit">Search</button>
-      </form>
-
-      {filteredProducts.length > 0 ? (
-        <ul>
-          {filteredProducts.map((product) => (
-            <li key={product.id}>
-              <h2>{product.name}</h2>
-
-              <p>
-                <strong>Category:</strong> {product.category}
-              </p>
-
-              <p>
-                <strong>Price:</strong> $
-                {product.pri < p > <strong>Price:</strong>}${product.price}
-              </p>
-
-              <p>
-                <strong>Description:</strong>
-                {product.description}
-              </p>
-            </li>
-          ))}
-        </ul>
+          <thead>
+            <tr style={{ background: "#f1f3f5" }}>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paginatedProducts.map((product) => (
+              <ProductItem key={product.id} product={product} />
+            ))}
+          </tbody>
+        </table>
       ) : (
-        <p>No products available.</p>
+        <p>No products are available.</p>
       )}
+
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+      />
     </div>
   );
 }
-
-export default ProductList;
